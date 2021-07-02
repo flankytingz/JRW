@@ -1,4 +1,4 @@
-package JRW;
+package me.Flanked.JRW;
 
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
@@ -61,7 +61,7 @@ public class Subreddit {
                 .routeParam(SUBREDDITNAME, this.subreddit_Name)
                 .asJson();
 
-        logger.debug("Attempted to retrieve subreddit data, status {} {}", response.getStatus(), response.getStatusText());
+        logger.debug("Attempted to retrieve subreddit \"{}\" data, status {} {}", this.subreddit_Name, response.getStatus(), response.getStatusText());
 
         // If API didn't respond as expected throws an error
         if (!(response.getStatus() == 200)) {

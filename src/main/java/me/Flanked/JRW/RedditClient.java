@@ -1,4 +1,4 @@
-package JRW;
+package me.Flanked.JRW;
 
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
