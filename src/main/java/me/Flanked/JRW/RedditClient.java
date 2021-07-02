@@ -15,7 +15,6 @@ public class RedditClient {
     private static final Logger logger = LoggerFactory.getLogger(RedditClient.class);
     private static final ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
 
-
     // Object variables
     private final String UUID = java.util.UUID.randomUUID().toString();
     private final Networker networker = new Networker();
