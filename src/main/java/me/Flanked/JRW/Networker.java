@@ -3,19 +3,15 @@ package me.Flanked.JRW;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
+import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
-import me.Flanked.JRW.Exceptions.InvalidResponse;
-import me.Flanked.JRW.Exceptions.InvalidSubredditName;
-import me.Flanked.JRW.Exceptions.InvalidType;
-import me.Flanked.JRW.Exceptions.RateLimited;
+import me.Flanked.JRW.Exceptions.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.Locale;
 
 public class Networker {
     private static final Logger logger = LoggerFactory.getLogger(Networker.class);
@@ -29,6 +25,7 @@ public class Networker {
     private static final String AUTHORIZATION = "Authorization";
     private static final String BEARER = "bearer ";
     private static final String SUBREDDITNAME = "subredditname";
+    private static final String SUBMISSIONS_URL = "https://oauth.reddit.com/r/{subredditname}/{sort}";
 
     private int ratelimitRemaining = -1;
     private int ratelimitReset = -1;
@@ -96,6 +93,27 @@ public class Networker {
         return response.getBody().getObject().getJSONObject("data");
     }
 
+    @CheckReturnValue
+    protected JSONArray getSubmissions (@Nonnull Subreddit subreddit, int limit, @Nonnull String access_Token) {
+        ratelimitTest();
+        HttpResponse<JsonNode> response = Unirest.get(SUBMISSIONS_URL)
+                .header(AUTHORIZATION, BEARER + access_Token)
+                .routeParam(SUBREDDITNAME, subreddit.getDisplay_name().toLowerCase(Locale.ROOT))
+                .routeParam("sort", "hot")
+                .queryString("limit", limit)
+                .asJson();
+
+        if (!(response.getStatus() == 200)) {
+            logger.error("Failed to get subreddit.");
+            throw new InvalidResponse("Received an invalid response from API");
+        }
+
+        this.ratelimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
+        this.ratelimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
+        return response.getBody().getObject().getJSONArray("children");
+    }
+
+    @CheckReturnValue
     private String getType (String kind) {
         return switch (kind) {
             case "t1" -> "comment";
