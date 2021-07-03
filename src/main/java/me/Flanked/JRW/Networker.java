@@ -13,10 +13,14 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class Networker {
     private static final Logger logger = LoggerFactory.getLogger(Networker.class);
-    private static final String URL = "https://www.reddit.com/api/v1/access_token";
+
+    private static final String OAUTH_URL = "https://www.reddit.com/api/v1/access_token";
     private static final String GRANT_TYPE = "grant_type";
     private static final String GRANT_TYPE_URL = "https://oauth.reddit.com/grants/installed_client";
     private static final String DEVICE_ID = "device_id";
@@ -34,7 +38,7 @@ public class Networker {
     }
 
     private void ratelimitTest () throws RateLimited {
-        if (ratelimitRemaining < 1) {
+        if (ratelimitRemaining == 0) {
             logger.error("Client has being rate limited, please wait %s sec before making a request.".formatted(this.ratelimitReset));
             throw new RateLimited("Client has being rate limited, please wait %s sec before making a request.".formatted(this.ratelimitReset));
         }
@@ -43,7 +47,7 @@ public class Networker {
     @CheckReturnValue
     protected String getAccessToken (@Nonnull String client_ID,@Nonnull String client_Secret,@Nonnull String UUID) throws InvalidResponse {
         ratelimitTest();
-        HttpResponse<JsonNode> response = Unirest.post(URL)
+        HttpResponse<JsonNode> response = Unirest.post(OAUTH_URL)
                 .basicAuth(client_ID, client_Secret)
                 .field(GRANT_TYPE, GRANT_TYPE_URL)
                 .field(DEVICE_ID, UUID)
@@ -80,17 +84,9 @@ public class Networker {
         }
 
         // If the returned data is not for a subreddit throws an error
-        if (!response.getBody().getObject().getString("kind").equals("t5")) {
-            String type;
-            type = switch (response.getBody().getObject().getString("kind")) {
-                case "t1" -> "comment";
-                case "t2" -> "account";
-                case "t3" -> "link";
-                case "t4" -> "message";
-                case "t5" -> "subreddit";
-                case "t6" -> "award";
-                default -> "unknown";
-            };
+        String kind = response.getBody().getObject().getString("kind");
+        if (!kind.equals("t5")) {
+            String type = getType(kind);
             logger.error("API return invalid type of object. Requested for subreddit, returned {}",type);
             throw new InvalidType("API return invalid type of object. Requested for subreddit, returned %s".formatted(type));
         }
@@ -98,5 +94,17 @@ public class Networker {
         this.ratelimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
         this.ratelimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
         return response.getBody().getObject().getJSONObject("data");
+    }
+
+    private String getType (String kind) {
+        return switch (kind) {
+            case "t1" -> "comment";
+            case "t2" -> "account";
+            case "t3" -> "link";
+            case "t4" -> "message";
+            case "t5" -> "subreddit";
+            case "t6" -> "award";
+            default -> "unknown";
+        };
     }
 }
