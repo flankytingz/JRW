@@ -27,22 +27,18 @@ public class Networker {
     private static final String SUBREDDITNAME = "subredditname";
     private static final String SUBMISSIONS_URL = "https://oauth.reddit.com/r/{subredditname}/{sort}";
 
-    private int ratelimitRemaining = -1;
-    private int ratelimitReset = -1;
+    private static int ratelimitRemaining = -1;
+    private static int ratelimitReset = -1;
 
-    protected Networker() {
-
-    }
-
-    private void ratelimitTest () throws RateLimited {
+    private static void ratelimitTest () throws RateLimited {
         if (ratelimitRemaining == 0) {
-            logger.error("Client has being rate limited, please wait %s sec before making a request.".formatted(this.ratelimitReset));
-            throw new RateLimited("Client has being rate limited, please wait %s sec before making a request.".formatted(this.ratelimitReset));
+            logger.error("Client has being rate limited, please wait %s sec before making a request.".formatted(ratelimitReset));
+            throw new RateLimited("Client has being rate limited, please wait %s sec before making a request.".formatted(ratelimitReset));
         }
     }
 
     @CheckReturnValue
-    protected String getAccessToken (@Nonnull String client_ID,@Nonnull String client_Secret,@Nonnull String UUID) throws InvalidResponse {
+    protected static String getAccessToken (@Nonnull String client_ID,@Nonnull String client_Secret,@Nonnull String UUID) throws InvalidResponse {
         ratelimitTest();
         HttpResponse<JsonNode> response = Unirest.post(OAUTH_URL)
                 .basicAuth(client_ID, client_Secret)
@@ -56,13 +52,13 @@ public class Networker {
             throw new InvalidResponse("Failed to get an access token.");
         }
 
-        this.ratelimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
-        this.ratelimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
+        ratelimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
+        ratelimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
         return response.getBody().getObject().getString(ACCESS_TOKEN);
     }
 
     @CheckReturnValue
-    protected JSONObject getSubredditData (@Nonnull String subredditName, @Nonnull String access_Token) throws InvalidResponse, InvalidSubredditName, InvalidType {
+    protected static JSONObject getSubredditData (@Nonnull String subredditName, @Nonnull String access_Token) throws InvalidResponse, InvalidSubredditName, InvalidType {
         ratelimitTest();
         HttpResponse <JsonNode> response = Unirest.get(SUBREDDIT_URL)
                 .header(AUTHORIZATION, BEARER + access_Token)
@@ -88,13 +84,13 @@ public class Networker {
             throw new InvalidType("API return invalid type of object. Requested for subreddit, returned %s".formatted(type));
         }
 
-        this.ratelimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
-        this.ratelimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
+        ratelimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
+        ratelimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
         return response.getBody().getObject().getJSONObject("data");
     }
 
     @CheckReturnValue
-    protected JSONArray getSubmissions (@Nonnull Subreddit subreddit, int limit, @Nonnull String access_Token) {
+    protected static JSONArray getSubmissions (@Nonnull Subreddit subreddit, int limit, @Nonnull String access_Token) {
         ratelimitTest();
         HttpResponse<JsonNode> response = Unirest.get(SUBMISSIONS_URL)
                 .header(AUTHORIZATION, BEARER + access_Token)
@@ -103,18 +99,27 @@ public class Networker {
                 .queryString("limit", limit)
                 .asJson();
 
+        logger.debug("Attempted to retrieve subreddit \"{}\" submissions with limit {}, status {} {}", subreddit.getDisplay_name(), limit, response.getStatus(), response.getStatusText());
+
         if (!(response.getStatus() == 200)) {
             logger.error("Failed to get subreddit.");
             throw new InvalidResponse("Received an invalid response from API");
         }
+        String kind = response.getBody().getObject().getString("kind");
+        if (!kind.equals("Listing")) {
+            String type = getType(kind);
+            logger.error("API return invalid type of object. Requested for listing, returned {}",type);
+            throw new InvalidType("API return invalid type of object. Requested for listing, returned %s".formatted(type));
+        }
 
-        this.ratelimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
-        this.ratelimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
-        return response.getBody().getObject().getJSONArray("children");
+
+        ratelimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
+        ratelimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
+        return response.getBody().getObject().getJSONObject("data").getJSONArray("children");
     }
 
     @CheckReturnValue
-    private String getType (String kind) {
+    private static String getType (String kind) {
         return switch (kind) {
             case "t1" -> "comment";
             case "t2" -> "account";
