@@ -58,20 +58,20 @@ public class Networker {
     }
 
     @CheckReturnValue
-    protected static JSONObject getSubredditData (@Nonnull String subredditName, @Nonnull String access_Token) throws InvalidResponse, InvalidSubredditName, InvalidType {
+    protected static JSONObject getSubredditData (@Nonnull String name, @Nonnull String access_Token) throws InvalidResponse, InvalidSubredditName, InvalidType {
         ratelimitTest();
         HttpResponse <JsonNode> response = Unirest.get(SUBREDDIT_URL)
                 .header(AUTHORIZATION, BEARER + access_Token)
-                .routeParam(SUBREDDITNAME, subredditName)
+                .routeParam(SUBREDDITNAME, name)
                 .asJson();
 
-        logger.debug("Attempted to retrieve subreddit \"{}\" data, status {} {}", subredditName, response.getStatus(), response.getStatusText());
+        logger.debug("Attempted to retrieve subreddit \"{}\" data, status {} {}", name, response.getStatus(), response.getStatusText());
 
         // If API didn't respond as expected throws an error
         if (!(response.getStatus() == 200)) {
             logger.error("Failed to get subreddit.");
             if (response.getStatus() == 404) {
-                throw new InvalidSubredditName("Subreddit %s does not exist".formatted(subredditName));
+                throw new InvalidSubredditName("Subreddit %s does not exist".formatted(name));
             }
             throw new InvalidResponse("Received an invalid response from API");
         }
@@ -94,12 +94,12 @@ public class Networker {
         ratelimitTest();
         HttpResponse<JsonNode> response = Unirest.get(SUBMISSIONS_URL)
                 .header(AUTHORIZATION, BEARER + access_Token)
-                .routeParam(SUBREDDITNAME, subreddit.getDisplay_name().toLowerCase(Locale.ROOT))
+                .routeParam(SUBREDDITNAME, subreddit.getDisplayName().toLowerCase(Locale.ROOT))
                 .routeParam("sort", "hot")
                 .queryString("limit", limit)
                 .asJson();
 
-        logger.debug("Attempted to retrieve subreddit \"{}\" submissions with limit {}, status {} {}", subreddit.getDisplay_name(), limit, response.getStatus(), response.getStatusText());
+        logger.debug("Attempted to retrieve subreddit \"{}\" submissions with limit {}, status {} {}", subreddit.getDisplayName(), limit, response.getStatus(), response.getStatusText());
 
         if (!(response.getStatus() == 200)) {
             logger.error("Failed to get subreddit.");
