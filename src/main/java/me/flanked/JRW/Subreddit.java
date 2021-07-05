@@ -1,10 +1,13 @@
-package me.Flanked.JRW;
+package me.flanked.JRW;
 
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
+import me.flanked.JRW.Enums.Sort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,7 +18,6 @@ public class Subreddit {
     private final String access_token;
 
     // Subreddit data
-    private final String subredditName;
     private int accounts_active;
     private String description;
     private String display_name;
@@ -30,15 +32,16 @@ public class Subreddit {
     private String title;
     private String url;
 
-    protected static Subreddit getSubredditByName (String name, String access_token) {
+    @CheckReturnValue
+    protected static Subreddit getSubredditByName (@Nonnull String name, @Nonnull String access_token) {
         return new Subreddit(name, access_token);
     }
 
     private Subreddit (String subredditName, String access_token) {
-        this.subredditName = subredditName;
         this.access_token = access_token;
-        JSONObject data = Networker.getSubredditData(this.subredditName, this.access_token);
+        JSONObject data = Networker.getSubredditData(subredditName, this.access_token);
         setData(data);
+        logger.debug("Created subreddit {}", this.display_name);
     }
 
     private void setData (JSONObject data) {
@@ -57,12 +60,13 @@ public class Subreddit {
         this.url = "https://www.reddit.com" + data.getString("url");
     }
 
-    public List<Submission> getSubmissions (int limit) {
-        JSONArray array = Networker.getSubmissions(this, limit, this.access_token);
+    @CheckReturnValue
+    public List<Submission> getSubmissions (int limit, Sort sort) {
+        JSONArray array = Networker.getSubmissions(this, limit, sort, this.access_token);
         List<Submission> list = new ArrayList<>();
         array.forEach(object -> {
             final JSONObject data = (JSONObject) object;
-            list.add(Submission.getSubmissionByData(data));
+            list.add(Submission.getSubmissionByData(data.getJSONObject("data")));
         });
         return list;
     }
@@ -117,16 +121,5 @@ public class Subreddit {
 
     public int getAccountsActive() {
         return accounts_active;
-    }
-
-    enum Listing {
-        HOT ("hot"),
-        NEW ("new"),
-        TOP ("top");
-
-        private final String value;
-        Listing(String sort) {
-            this.value = sort;
-        }
     }
 }

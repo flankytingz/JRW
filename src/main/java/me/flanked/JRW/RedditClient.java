@@ -1,10 +1,11 @@
-package me.Flanked.JRW;
+package me.flanked.JRW;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -47,8 +48,13 @@ public class RedditClient {
      * @return Returns a subreddit object.
      */
     @CheckReturnValue
-    public Subreddit getSubRedditByName (@NotNull String name) {
+    public Subreddit getSubredditByName (@Nonnull String name) {
         return Subreddit.getSubredditByName(name, this.access_Token);
+    }
+
+    @CheckReturnValue
+    public Submission getSubmissionByID (@Nonnull String ID) {
+        return Submission.getSubmissionByData(Networker.getSubmission(ID, this.access_Token));
     }
 
     public String getUUID() {

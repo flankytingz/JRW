@@ -1,4 +1,4 @@
-package me.Flanked.JRW.Exceptions;
+package me.flanked.JRW.Exceptions;
 
 public class InvalidResponse extends RuntimeException {
     public InvalidResponse (String errorMessage) {
