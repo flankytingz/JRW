@@ -29,13 +29,13 @@ public class Networker {
     private static final String SUBMISSIONS_URL = "https://oauth.reddit.com/r/{subredditname}/{sort}";
     private static final String SUBMISSION_URL = "https://oauth.reddit.com/comments/{id}";
 
-    private static int ratelimitRemaining = -1;
-    private static int ratelimitReset = -1;
+    private static int rateLimitRemaining = -1;
+    private static int rateLimitReset = -1;
 
-    private static void ratelimitTest () throws RateLimited {
-        if (ratelimitRemaining == 0) {
-            logger.error("Client has being rate limited, please wait %s sec before making a request.".formatted(ratelimitReset));
-            throw new RateLimited("Client has being rate limited, please wait %s sec before making a request.".formatted(ratelimitReset));
+    private static void rateLimitTest() throws RateLimited {
+        if (rateLimitRemaining == 0) {
+            logger.error("Client has being rate limited, please wait %s sec before making a request.".formatted(rateLimitReset));
+            throw new RateLimited("Client has being rate limited, please wait %s sec before making a request.".formatted(rateLimitReset));
         }
     }
 
@@ -53,9 +53,9 @@ public class Networker {
             throw new InvalidResponse("Failed to get an access token.");
         }
 
-        ratelimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
-        ratelimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
-        ratelimitTest();
+        rateLimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
+        rateLimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
+        rateLimitTest();
         return response.getBody().getObject().getString(ACCESS_TOKEN);
     }
 
@@ -81,9 +81,9 @@ public class Networker {
         String kind = response.getBody().getObject().getString("kind");
         testForType(response, kind, "t5");
 
-        ratelimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
-        ratelimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
-        ratelimitTest();
+        rateLimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
+        rateLimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
+        rateLimitTest();
         return response.getBody().getObject().getJSONObject("data");
     }
 
@@ -156,8 +156,8 @@ public class Networker {
         }
 
 
-        ratelimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
-        ratelimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
-        ratelimitTest();
+        rateLimitRemaining = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-remaining"));
+        rateLimitReset = Integer.parseInt(response.getHeaders().getFirst("x-ratelimit-reset"));
+        rateLimitTest();
     }
 }
