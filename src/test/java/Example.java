@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Example {
     public static void main(String[] args) {
-        RedditClient client = RedditClient.createNewClient(args[0], args[1]);
+        RedditClient client = RedditClient.createNewClient("ID","SECRET");
         Subreddit subreddit = client.getSubredditByName("aww");
         List<Submission> submissions = subreddit.getSubmissions(5, Sort.HOT);
         submissions.forEach(
@@ -15,7 +15,7 @@ public class Example {
                     if (submission.isPinned()) {
                         return;
                     }
-                    System.out.println(submission);
+                    System.out.println(submission.getTitle());
                 }
         );
     }
